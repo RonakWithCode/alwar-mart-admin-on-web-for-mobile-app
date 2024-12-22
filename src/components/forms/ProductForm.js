@@ -5,8 +5,9 @@ import { toast } from 'react-hot-toast';
 import Product from '@/models/Product';
 import { ProductService } from '@/services/ProductService';
 import LoadingSpinner from '../ui/LoadingSpinner';
+import Image from 'next/image';
 
-export default function ProductForm({ product, brands, categories, onSubmit }) {
+export default function ProductForm({ product, brands, categories, subCategories, onSubmit }) {
   const [formData, setFormData] = useState({
     available: false,
     productId: '',
@@ -88,37 +89,34 @@ export default function ProductForm({ product, brands, categories, onSubmit }) {
     }));
   };
 
-  const searchProducts = async (query) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    
-    try {
-      setIsSearching(true);
-      const allProducts = await ProductService.getAllProducts();
-      const filtered = allProducts.filter(p => 
-        (p.productName?.toLowerCase().includes(query.toLowerCase()) ||
-        p.productId?.toLowerCase().includes(query.toLowerCase())) &&
-        p.id !== product?.id
-      );
-      setSearchResults(filtered);
-    } catch (error) {
-      console.error('Error searching products:', error);
-      toast.error('Failed to search products');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
   useEffect(() => {
     if (isVariationDialogOpen) {
-      const timer = setTimeout(() => {
-        searchProducts(variationSearch);
+      const timer = setTimeout(async () => {
+        if (!variationSearch.trim()) {
+          setSearchResults([]);
+          return;
+        }
+        
+        try {
+          setIsSearching(true);
+          const allProducts = await ProductService.getAllProducts();
+          const filtered = allProducts.filter(p => 
+            (p.productName?.toLowerCase().includes(variationSearch.toLowerCase()) ||
+            p.productId?.toLowerCase().includes(variationSearch.toLowerCase())) &&
+            p.id !== product?.id
+          );
+          setSearchResults(filtered);
+        } catch (error) {
+          console.error('Error searching products:', error);
+          toast.error('Failed to search products');
+        } finally {
+          setIsSearching(false);
+        }
       }, 300);
+      
       return () => clearTimeout(timer);
     }
-  }, [variationSearch, isVariationDialogOpen]);
+  }, [variationSearch, isVariationDialogOpen, product?.id]);
 
   const addVariation = (selectedProduct) => {
     const existingVariation = formData.variations.find(v => v.id === selectedProduct.id);
@@ -258,14 +256,22 @@ export default function ProductForm({ product, brands, categories, onSubmit }) {
         </div>
 
         <div>
+          {/* subCategories */}
           <label className="block text-sm font-medium text-gray-700">Sub Category</label>
-          <input
-            type="text"
+          <select
             name="subCategory"
             value={formData.subCategory}
             onChange={handleInputChange}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
+          >
+            <option value="">Select Sub Category</option>
+            {subCategories.map(subcategory => (
+              <option key={subcategory.subCategoryName} value={subcategory.subCategoryName}>
+                {subcategory.subCategoryName}
+              </option>
+            ))}
+          </select>
+        
         </div>
 
         {/* Pricing */}
@@ -545,18 +551,19 @@ export default function ProductForm({ product, brands, categories, onSubmit }) {
           <label className="block text-sm font-medium text-gray-700 mb-2">Product Images</label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {imagePreviews.map((preview, index) => (
-              <div key={index} className="relative aspect-square">
-                <img
+              <div key={index} className="relative w-24 h-24">
+                <Image
                   src={preview}
                   alt={`Preview ${index + 1}`}
-                  className="w-full h-full object-cover rounded-lg"
+                  fill
+                  className="object-cover rounded-lg"
                 />
                 <button
                   type="button"
                   onClick={() => removeImage(index)}
-                  className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md"
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
                 >
-                  <XMarkIcon className="h-5 w-5" />
+                  <XMarkIcon className="h-4 w-4" />
                 </button>
               </div>
             ))}

@@ -9,6 +9,8 @@ import { SearchContext } from '@/context/SearchContext';
 import { toast } from 'react-hot-toast';
 import { MagnifyingGlassIcon, PlusIcon, XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import ProductForm from '@/components/forms/ProductForm';
+import { SubCategoryService } from '@/services/SubCategoryService';
+import Image from 'next/image';
 
 export default function ProductsPage() {
   const { searchQuery, setSearchQuery } = useContext(SearchContext);
@@ -16,6 +18,7 @@ export default function ProductsPage() {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -41,15 +44,17 @@ export default function ProductsPage() {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [productsData, brandsData, categoriesData] = await Promise.all([
+      const [productsData, brandsData, categoriesData ,subCategoriesData] = await Promise.all([
         ProductService.getAllProducts(),
         BrandService.getAllBrands(),
-        CategoryService.getAllCategories()
+        CategoryService.getAllCategories(),
+        SubCategoryService.getAllSubCategories()
       ]);
       setProducts(productsData);
       setFilteredProducts(productsData);
       setBrands(brandsData);
       setCategories(categoriesData);
+      setSubCategories(subCategoriesData);
     } catch (error) {
       toast.error('Failed to fetch data');
       console.error('Error:', error);
@@ -133,18 +138,19 @@ export default function ProductsPage() {
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
+                className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group"
               >
                 <div className="relative aspect-square">
-                  <img
+                  <Image
                     src={product.productImage[0] || '/placeholder.png'}
                     alt={product.productName}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                     onError={(e) => {
                       e.target.src = '/placeholder.png';
                     }}
                   />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
@@ -160,7 +166,7 @@ export default function ProductsPage() {
                           setSelectedProduct(product);
                           setIsDeleteDialogOpen(true);
                         }}
-                        className="bg-red-700 text-white px-4 py-2 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
+                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-500 transition-colors"
                       >
                         Delete
                       </button>
@@ -203,6 +209,7 @@ export default function ProductsPage() {
               product={selectedProduct}
               brands={brands}
               categories={categories}
+              subCategories={subCategories}
               onSubmit={async (formData) => {
                 try {
                   if (selectedProduct) {
