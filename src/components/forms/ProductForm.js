@@ -474,11 +474,15 @@ export default function ProductForm({ product, brands, categories, subCategories
                   onChange={handleInputChange}
                   className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 >
+                {console.log(formData.weightSIUnit)}
+
                   <option value="">Select Unit</option>
-                  <option value="g">Grams (g)</option>
-                  <option value="kg">Kilograms (kg)</option>
-                  <option value="ml">Milliliters (ml)</option>
-                  <option value="L">Liters (L)</option>
+
+                  {Object.entries(Product.WEIGHT_SI_UNITS).map(([key, value]) => (
+                    <option key={key} value={value}>
+                      {key}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

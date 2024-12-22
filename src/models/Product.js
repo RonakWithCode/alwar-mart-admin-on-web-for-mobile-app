@@ -29,6 +29,39 @@ class Product {
     FoodVeg: "FoodVeg",
     nonFood: "nonFood"
   };
+  static WEIGHT_SI_UNITS = {
+    Kg: "Kg",
+    Grams: "Grams",
+    HalfKg: "Half Kg",
+    QuarterKg: "Quarter Kg",
+    Litre: "Litre",
+    HalfLitre: "Half Litre",
+    Milliliters: "Milliliters",
+    Piece: "Piece",
+    Pieces: "Pieces",
+    Dozen: "Dozen",
+    HalfDozen: "Half Dozen",
+    Pack: "Pack",
+    Box: "Box",
+    Carton: "Carton",
+    Packet: "Packet",
+    Bag: "Bag",
+    Bundle: "Bundle",
+    Pouch: "Pouch",
+    Sachet: "Sachet",
+    Quintal: "Quintal (100 Kg)",
+    Tola: "Tola (11.66 g)",
+    Bunch: "Bunch",
+    Strip: "Strip",
+    Roll: "Roll",
+    Sheet: "Sheet",
+    Pair: "Pair",
+    Bottle: "Bottle",
+    Can: "Can",
+    Jar: "Jar",
+    Unit: "Unit",
+    Other: "Other"
+  };
 
   constructor({
     available = false,
