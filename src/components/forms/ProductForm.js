@@ -596,6 +596,110 @@ export default function ProductForm({ product, brands, categories, subCategories
         </div>
       </div>
 
+      {/* Variations Section */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">Product Variations</h3>
+          <button
+            type="button"
+            onClick={() => setIsVariationDialogOpen(true)}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Add Variation
+          </button>
+        </div>
+
+        {/* Variations List */}
+        <div className="space-y-4">
+          {formData.variations.map((variation, index) => (
+            <div key={variation.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Name</label>
+                  <input
+                    type="text"
+                    value={variation.name}
+                    onChange={(e) => handleVariationChange(index, 'name', e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Weight</label>
+                  <input
+                    type="text"
+                    value={variation.weightWithSIUnit}
+                    onChange={(e) => handleVariationChange(index, 'weightWithSIUnit', e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => removeVariation(index)}
+                className="inline-flex items-center p-1 border border-transparent rounded-full text-red-600 hover:bg-red-50"
+              >
+                <TrashIcon className="h-5 w-5" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Variation Search Dialog */}
+        {isVariationDialogOpen && (
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">Search Products</label>
+                <input
+                  type="text"
+                  value={variationSearch}
+                  onChange={(e) => setVariationSearch(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  placeholder="Search by product name..."
+                />
+              </div>
+
+              <div className="max-h-96 overflow-y-auto">
+                {isSearching ? (
+                  <div className="flex justify-center py-4">
+                    <LoadingSpinner />
+                  </div>
+                ) : (
+                  searchResults.map(product => (
+                    <div
+                      key={product.id}
+                      className="flex items-center justify-between p-3 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => addVariation(product)}
+                    >
+                      <div>
+                        <div className="font-medium">{product.productName}</div>
+                        <div className="text-sm text-gray-500">{product.productId}</div>
+                      </div>
+                      <PlusIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsVariationDialogOpen(false);
+                    setVariationSearch('');
+                    setSearchResults([]);
+                  }}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Submit Buttons */}
       <div className="flex justify-end gap-4 pt-4">
         <button
