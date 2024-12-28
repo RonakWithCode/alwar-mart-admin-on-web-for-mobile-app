@@ -8,7 +8,8 @@ export class SubCategoryService {
       const querySnapshot = await getDocs(collection(db, 'subCategory'));
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
+        createdAt: doc.data().createdAt || new Date().toISOString()
       }));
     } catch (error) {
       console.error('Error fetching subcategories:', error);
@@ -19,7 +20,7 @@ export class SubCategoryService {
   static async createSubCategory(subCategoryData) {
     try {
       const subCategory = new SubCategory(subCategoryData);
-      const docRef = await addDoc(collection(db, 'subCategory',subCategory.subCategoryName), subCategory.toFirestore());
+      const docRef = await addDoc(collection(db, 'subCategory'), subCategory.toFirestore());
       return {
         id: docRef.id,
         ...subCategory.toFirestore()

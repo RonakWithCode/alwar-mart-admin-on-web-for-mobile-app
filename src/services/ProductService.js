@@ -1,12 +1,19 @@
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, deleteDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import Product from '@/models/Product';
 
 export class ProductService {
+  // Helper function to generate a unique product ID
+  static generateProductId() {
+    const timestamp = Date.now().toString(36); // Convert timestamp to base36
+    const randomStr = Math.random().toString(36).substring(2, 7); // 5 random chars
+    return `PRD${timestamp}${randomStr}`.toUpperCase();
+  }
+
   static async getAllProducts() {
     try {
-      const querySnapshot = await getDocs(collection(db, 'Product'));
+      const querySnapshot = await getDocs(collection(db, 'products'));
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -21,19 +28,23 @@ export class ProductService {
     try {
       const productImages = [];
       
-      // Upload multiple images
+      // Upload images if provided
       if (imageFiles && imageFiles.length > 0) {
         for (const file of imageFiles) {
-          const storageRef = ref(storage, `product/${Date.now()}${file.name}`);
+          const storageRef = ref(storage, `product-images/${Date.now()}-${file.name}`);
           await uploadBytes(storageRef, file);
           const imageUrl = await getDownloadURL(storageRef);
           productImages.push(imageUrl);
         }
       }
 
-      // Convert form data to proper types
+      // Generate a unique product ID
+      const generatedId = this.generateProductId();
+      
+      // Process the data
       const processedData = {
         ...productData,
+        productId: generatedId,
         price: Number(productData.price) || 0,
         mrp: Number(productData.mrp) || 0,
         purchasePrice: Number(productData.purchasePrice) || 0,
@@ -43,17 +54,26 @@ export class ProductService {
         maxSelectableQuantity: Number(productData.maxSelectableQuantity) || 1,
         selectableQuantity: Number(productData.selectableQuantity) || 1,
         productImage: productImages,
-        keywords: typeof productData.keywords === 'string' 
-          ? productData.keywords.split(',').map(k => k.trim())
-          : (Array.isArray(productData.keywords) ? productData.keywords : []),
+        keywords: Array.isArray(productData.keywords) ? productData.keywords : 
+                 (typeof productData.keywords === 'string' ? 
+                   productData.keywords.split(',').map(k => k.trim()) : []),
         variations: Array.isArray(productData.variations) ? productData.variations : []
       };
 
+      // Create new Product instance
       const product = new Product(processedData);
-      const productRef = await addDoc(collection(db, 'Product' ,product.productId), product.toFirestore());
+
+      // Create document with generated ID
+      const productRef = doc(db, 'products', generatedId);
       
+      // Save to Firestore
+      await setDoc(productRef, {
+        ...product.toFirestore(),
+        createdAt: new Date().toISOString()
+      });
+
       return {
-        id: productRef.id,
+        id: generatedId,
         ...product.toFirestore()
       };
     } catch (error) {
@@ -64,6 +84,7 @@ export class ProductService {
 
   static async updateProduct(productId, productData, imageFiles, currentImages) {
     try {
+      const productDocRef = doc(db, 'products', productId);
       let productImages = [...(currentImages || [])];
 
       // Handle new image uploads
@@ -98,7 +119,7 @@ export class ProductService {
       const product = new Product(processedData);
 
       // Update in Firestore
-      await updateDoc(doc(db, 'Product', productId), product.toFirestore());
+      await updateDoc(productDocRef, product.toFirestore());
 
       // Return updated product
       return {
@@ -113,6 +134,7 @@ export class ProductService {
 
   static async deleteProduct(productId, productImages) {
     try {
+      const productDocRef = doc(db, 'products', productId);
       // Delete all images from storage
       if (productImages && productImages.length > 0) {
         for (const imageUrl of productImages) {
@@ -125,7 +147,7 @@ export class ProductService {
         }
       }
 
-      await deleteDoc(doc(db, 'Product', productId));
+      await deleteDoc(productDocRef);
     } catch (error) {
       console.error('Error deleting product:', error);
       throw new Error('Failed to delete product');
@@ -134,9 +156,8 @@ export class ProductService {
 
   static async getProductById(productId) {
     try {
-      console.log('Attempting to fetch product with ID:', productId);
-      
-      const productDoc = await getDoc(doc(db, 'Product', productId));
+      const productDocRef = doc(db, 'products', productId);
+      const productDoc = await getDoc(productDocRef);
       
       if (!productDoc.exists()) {
         console.log('Product document does not exist');

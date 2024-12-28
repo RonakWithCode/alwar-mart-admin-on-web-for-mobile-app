@@ -13,7 +13,6 @@ import { SubCategoryService } from '@/services/SubCategoryService';
 export default function ProductForm({ product, brands, categories, subCategories, onSubmit, onRefreshData }) {
   const [formData, setFormData] = useState({
     available: true,
-    productId: '',
     productName: '',
     productDescription: '',
     brand: '',
@@ -364,19 +363,6 @@ export default function ProductForm({ product, brands, categories, subCategories
                 onChange={handleInputChange}
                 className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product ID
-              </label>
-              <input
-                type="text"
-                name="productId"
-                value={formData.productId}
-                onChange={handleInputChange}
-                className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
