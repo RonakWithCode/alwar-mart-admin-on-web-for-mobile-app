@@ -20,6 +20,7 @@ export default function BrandsPage() {
     imageFile: null,
   });
   const [imagePreview, setImagePreview] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchBrands();
@@ -68,7 +69,10 @@ export default function BrandsPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     try {
+      setIsSubmitting(true);
       if (selectedBrand) {
         await BrandService.updateBrand(selectedBrand.id, {
           brandName: formData.brandName,
@@ -77,10 +81,7 @@ export default function BrandsPage() {
         });
         toast.success('Brand updated successfully');
       } else {
-        await BrandService.createBrand({
-          brandName: formData.brandName,
-          imageFile: formData.imageFile
-        });
+        await BrandService.createBrand(formData);
         toast.success('Brand created successfully');
       }
       resetForm();
@@ -88,6 +89,8 @@ export default function BrandsPage() {
     } catch (error) {
       toast.error(selectedBrand ? 'Failed to update brand' : 'Failed to create brand');
       console.error('Error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -283,8 +286,10 @@ export default function BrandsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                  disabled={isSubmitting}
+                  className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
+                  {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                   {selectedBrand ? 'Update' : 'Create'}
                 </button>
               </div>

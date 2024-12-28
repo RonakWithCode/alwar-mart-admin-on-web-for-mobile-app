@@ -15,6 +15,7 @@ export default function SubCategoriesPage() {
   const [formData, setFormData] = useState({
     subCategoryName: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -34,7 +35,10 @@ export default function SubCategoriesPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     try {
+      setIsSubmitting(true);
       if (selectedSubCategory) {
         await SubCategoryService.updateSubCategory(selectedSubCategory.id, formData);
         toast.success('Sub-category updated successfully');
@@ -48,6 +52,9 @@ export default function SubCategoriesPage() {
       fetchData();
     } catch (error) {
       toast.error(selectedSubCategory ? 'Failed to update sub-category' : 'Failed to create sub-category');
+      console.error('Error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -170,8 +177,10 @@ export default function SubCategoriesPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
+                  {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                   {selectedSubCategory ? 'Update' : 'Create'}
                 </button>
               </div>

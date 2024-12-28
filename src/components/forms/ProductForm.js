@@ -49,6 +49,7 @@ export default function ProductForm({ product, brands, categories, subCategories
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingSubCategories, setLoadingSubCategories] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -249,50 +250,22 @@ export default function ProductForm({ product, brands, categories, subCategories
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    if (isSubmitting) return;
+
     try {
-      // Basic validation
-      if (!formData.productName || !formData.brand || !formData.category) {
-        toast.error('Please fill in all required fields');
-        return;
+      setIsSubmitting(true);
+      if (product) {
+        await onSubmit({
+          ...formData,
+          currentImages: product.productImage
+        });
+      } else {
+        await onSubmit(formData);
       }
-
-      // Price validation
-      if (Number(formData.price) > Number(formData.mrp)) {
-        toast.error('Selling price cannot be greater than MRP');
-        return;
-      }
-
-      // Maximum quantity validation
-      if (Number(formData.maxSelectableQuantity) > Number(formData.stockCount)) {
-        toast.error('Maximum selectable quantity cannot exceed stock count');
-        return;
-      }
-
-      // Minimum quantity validation
-      if (Number(formData.minSelectableQuantity) > Number(formData.maxSelectableQuantity)) {
-        toast.error('Minimum quantity cannot be greater than maximum quantity');
-        return;
-      }
-
-      // Process form data
-      const processedData = {
-        ...formData,
-        price: Number(formData.price),
-        mrp: Number(formData.mrp),
-        discount: Number(formData.discount),
-        stockCount: Number(formData.stockCount),
-        purchasePrice: Number(formData.purchasePrice),
-        minSelectableQuantity: Number(formData.minSelectableQuantity),
-        maxSelectableQuantity: Number(formData.maxSelectableQuantity),
-        selectableQuantity: Number(formData.selectableQuantity),
-        variations: formData.variations || []
-      };
-
-      await onSubmit(processedData);
     } catch (error) {
-      console.error('Form submission error:', error);
-      toast.error('Failed to save product');
+      console.error('Error submitting form:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -911,9 +884,11 @@ export default function ProductForm({ product, brands, categories, subCategories
         </button>
         <button
           type="submit"
-          className="px-6 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          disabled={isSubmitting}
+          className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
-          {product ? 'Update Product' : 'Create Product'}
+          {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+          {product ? 'Update' : 'Create'}
         </button>
       </div>
     </form>
