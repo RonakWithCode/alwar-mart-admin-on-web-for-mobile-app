@@ -36,6 +36,7 @@ export class ProductService {
         ...productData,
         price: Number(productData.price) || 0,
         mrp: Number(productData.mrp) || 0,
+        purchasePrice: Number(productData.purchasePrice) || 0,
         discount: Number(productData.discount) || 0,
         stockCount: Number(productData.stockCount) || 0,
         minSelectableQuantity: Number(productData.minSelectableQuantity) || 1,
@@ -49,7 +50,7 @@ export class ProductService {
       };
 
       const product = new Product(processedData);
-      const productRef = await addDoc(collection(db, 'Product'), product.toFirestore());
+      const productRef = await addDoc(collection(db, 'Product' ,product.productId), product.toFirestore());
       
       return {
         id: productRef.id,
@@ -80,6 +81,7 @@ export class ProductService {
         ...productData,
         price: Number(productData.price) || 0,
         mrp: Number(productData.mrp) || 0,
+        purchasePrice: Number(productData.purchasePrice) || 0,
         discount: Number(productData.discount) || 0,
         stockCount: Number(productData.stockCount) || 0,
         minSelectableQuantity: Number(productData.minSelectableQuantity) || 1,

@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { OrderService } from '@/services/OrderService';
+import Image from 'next/image';
 
 export default function OrderDetailsModal({ order, onClose, onStatusUpdate }) {
   const formatCurrency = (amount) => {
@@ -22,6 +23,16 @@ export default function OrderDetailsModal({ order, onClose, onStatusUpdate }) {
       minute: '2-digit'
     });
   };
+
+  // Status action buttons with different colors
+  const statusActions = [
+    { status: OrderService.ORDER_STATUS.CONFIRMED, color: 'bg-green-600 hover:bg-green-700' },
+    { status: OrderService.ORDER_STATUS.OUTFORDELIVERY, color: 'bg-blue-600 hover:bg-blue-700' },
+    { status: OrderService.ORDER_STATUS.DELIVERED, color: 'bg-purple-600 hover:bg-purple-700' },
+    { status: OrderService.ORDER_STATUS.CANCELLED, color: 'bg-red-600 hover:bg-red-700' },
+    { status: OrderService.ORDER_STATUS.CUSTOMER_REJECTED, color: 'bg-orange-600 hover:bg-orange-700' },
+    { status: OrderService.ORDER_STATUS.CUSTOMER_NOT_AVAILABLE, color: 'bg-gray-600 hover:bg-gray-700' }
+  ];
 
   return (
     <Transition.Root show={true} as={Fragment}>
@@ -60,117 +71,151 @@ export default function OrderDetailsModal({ order, onClose, onStatusUpdate }) {
                   </button>
                 </div>
 
-                <div className="sm:flex sm:items-start">
-                  <div className="w-full">
-                    <Dialog.Title as="h3" className="text-xl font-semibold leading-6 text-gray-900 mb-4">
-                      Order Details #{order.orderId}
-                    </Dialog.Title>
+                <div className="border-b pb-4 mb-4">
+                  <Dialog.Title as="h3" className="text-xl font-semibold text-gray-900">
+                    Order #{order.orderId}
+                  </Dialog.Title>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Placed on {formatDate(order.orderDate)}
+                  </p>
+                </div>
 
-                    {/* Order Status and Actions */}
-                    <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                      <h4 className="text-sm font-medium text-gray-500 mb-2">Status Actions</h4>
-                      <div className="flex gap-2 flex-wrap">
-                        {order.orderStatus === OrderService.ORDER_STATUS.PROCESSING && (
-                          <>
-                            <button
-                              onClick={() => onStatusUpdate(order, OrderService.ORDER_STATUS.CONFIRMED)}
-                              className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium"
-                            >
-                              Confirm Order
-                            </button>
-                            <button
-                              onClick={() => onStatusUpdate(order, OrderService.ORDER_STATUS.CANCELLED)}
-                              className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium"
-                            >
-                              Cancel Order
-                            </button>
-                          </>
-                        )}
-                        {/* Add other status action buttons */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">Customer Details</h4>
+                      <p className="text-sm text-gray-900">{order.customer.fullName}</p>
+                      <p className="text-sm text-gray-600">Primary: {order.customer.phoneNumber}</p>
+                      {order.customer.phoneNumber2 && (
+                        <p className="text-sm text-gray-600">Secondary: {order.customer.phoneNumber2}</p>
+                      )}
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">Delivery Address</h4>
+                      <p className="text-sm text-gray-900">{order.shipping.shippingAddress.fullName}</p>
+                      <p className="text-sm text-gray-600">{order.shipping.shippingAddress.flatHouse}</p>
+                      <p className="text-sm text-gray-600">{order.shipping.shippingAddress.address}</p>
+                      {order.shipping.shippingAddress.landmark && (
+                        <p className="text-sm text-gray-600">Landmark: {order.shipping.shippingAddress.landmark}</p>
+                      )}
+                      <p className="text-sm text-gray-600">Phone: {order.shipping.shippingAddress.mobileNumber}</p>
+                      <div className="mt-2">
+                        <span className={`inline-flex items-center px-2 py-1 text-xs rounded-full ${
+                          order.shipping.shippingAddress.isHomeSelected ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {order.shipping.shippingAddress.isHomeSelected ? 'Home' : 'Other'}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Customer Information */}
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <h4 className="text-sm font-medium text-gray-500 mb-2">Customer Information</h4>
-                        <p className="text-sm text-gray-900">{order.customer.fullName}</p>
-                        <p className="text-sm text-gray-600">{order.customer.phoneNumber}</p>
-                        {order.customer.phoneNumber2 && (
-                          <p className="text-sm text-gray-600">{order.customer.phoneNumber2}</p>
-                        )}
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">Update Order Status</h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {statusActions.map(({ status, color }) => (
+                          <button
+                            key={status}
+                            onClick={() => onStatusUpdate(order, status)}
+                            disabled={order.orderStatus === status}
+                            className={`${color} text-white px-3 py-2 text-sm rounded-md disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {status}
+                          </button>
+                        ))}
                       </div>
+                    </div>
+                  </div>
 
-                      {/* Shipping Information */}
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <h4 className="text-sm font-medium text-gray-500 mb-2">Shipping Information</h4>
-                        <p className="text-sm text-gray-900">{order.shipping.shippingAddress.fullName}</p>
-                        <p className="text-sm text-gray-600">{order.shipping.shippingAddress.flatHouse}</p>
-                        <p className="text-sm text-gray-600">{order.shipping.shippingAddress.address}</p>
-                        <p className="text-sm text-gray-600">{order.shipping.shippingAddress.landmark}</p>
-                      </div>
-
-                      {/* Order Items */}
-                      <div className="bg-gray-50 p-4 rounded-lg md:col-span-2">
-                        <h4 className="text-sm font-medium text-gray-500 mb-2">Order Items</h4>
-                        <div className="mt-2">
-                          {order.orderItems.map((item, index) => (
-                            <div key={index} className="flex justify-between py-2 border-b last:border-0">
-                              <div>
-                                <p className="text-sm text-gray-900">{item.productName}</p>
-                                <p className="text-xs text-gray-600">
-                                  Qty: {item.selectableQuantity} × {formatCurrency(item.price)}
-                                </p>
+                  <div className="space-y-6">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-500 mb-4">Order Items</h4>
+                      <div className="space-y-4">
+                        {order.orderItems.map((item, index) => (
+                          <div key={index} className="flex gap-4 pb-4 border-b last:border-0">
+                            {item.productImage && item.productImage[0] && (
+                              <div className="relative w-20 h-20">
+                                <Image
+                                  src={item.productImage[0]}
+                                  alt={item.productName}
+                                  fill
+                                  className="object-cover rounded-md"
+                                />
                               </div>
-                              <p className="text-sm font-medium text-gray-900">
-                                {formatCurrency(item.price * item.selectableQuantity)}
+                            )}
+                            <div className="flex-1">
+                              <h5 className="text-sm font-medium text-gray-900">{item.productName}</h5>
+                              <p className="text-sm text-gray-600">
+                                Quantity: {item.selectableQuantity} × {formatCurrency(item.price)}
                               </p>
+                              {item.variations && (
+                                <p className="text-sm text-gray-600">
+                                  Variation: {item.variations.variationName} - {item.variations.variationValue}
+                                </p>
+                              )}
                             </div>
-                          ))}
+                            <div className="text-sm font-medium text-gray-900">
+                              {formatCurrency(item.price * item.selectableQuantity)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">Payment Details</h4>
+                      <p className="text-sm text-gray-900">Method: {order.payment.paymentMethod}</p>
+                      <p className="text-sm text-gray-600">Status: {order.payment.paymentStatus}</p>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">Order Summary</h4>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Subtotal:</span>
+                          <span className="text-gray-900">{formatCurrency(order.orderTotalPrice)}</span>
                         </div>
-                      </div>
-
-                      {/* Payment Information */}
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <h4 className="text-sm font-medium text-gray-500 mb-2">Payment Details</h4>
-                        <p className="text-sm text-gray-900">Method: {order.payment.paymentMethod}</p>
-                        <p className="text-sm text-gray-600">Status: {order.payment.paymentStatus}</p>
-                      </div>
-
-                      {/* Order Summary */}
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <h4 className="text-sm font-medium text-gray-500 mb-2">Order Summary</h4>
-                        <div className="space-y-1">
+                        {order.couponCodeValue > 0 && (
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Subtotal:</span>
-                            <span className="text-gray-900">{formatCurrency(order.orderTotalPrice)}</span>
+                            <span className="text-gray-600">Discount ({order.couponCode}):</span>
+                            <span className="text-red-600">-{formatCurrency(order.couponCodeValue)}</span>
                           </div>
-                          {order.couponCodeValue > 0 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Discount ({order.couponCode}):</span>
-                              <span className="text-red-600">-{formatCurrency(order.couponCodeValue)}</span>
-                            </div>
-                          )}
-                          {order.processingFees > 0 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Processing Fees:</span>
-                              <span className="text-gray-900">{formatCurrency(order.processingFees)}</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between text-sm font-medium pt-2 border-t">
-                            <span className="text-gray-900">Total:</span>
-                            <span className="text-gray-900">
-                              {formatCurrency(order.orderTotalPrice - order.couponCodeValue + order.processingFees)}
-                            </span>
+                        )}
+                        {order.shipping.shippingFee && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Shipping Fee:</span>
+                            <span className="text-gray-900">{formatCurrency(order.shipping.shippingFee)}</span>
                           </div>
+                        )}
+                        {order.donate > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Donation:</span>
+                            <span className="text-green-600">{formatCurrency(order.donate)}</span>
+                          </div>
+                        )}
+                        {order.processingFees > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Processing Fees:</span>
+                            <span className="text-gray-900">{formatCurrency(order.processingFees)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm font-medium pt-2 border-t">
+                          <span className="text-gray-900">Total:</span>
+                          <span className="text-gray-900">
+                            {formatCurrency(
+                              order.orderTotalPrice - 
+                              order.couponCodeValue + 
+                              (parseFloat(order.shipping.shippingFee) || 0) + 
+                              order.processingFees + 
+                              order.donate
+                            )}
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Additional Information */}
                     {order.notes && (
-                      <div className="mt-6 bg-gray-50 p-4 rounded-lg">
-                        <h4 className="text-sm font-medium text-gray-500 mb-2">Notes</h4>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h4 className="text-sm font-medium text-gray-500 mb-2">Order Notes</h4>
                         <p className="text-sm text-gray-600">{order.notes}</p>
                       </div>
                     )}

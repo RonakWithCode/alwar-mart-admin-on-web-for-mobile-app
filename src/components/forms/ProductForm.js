@@ -1,15 +1,18 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { XMarkIcon, PhotoIcon, PlusIcon, TrashIcon, TagIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PhotoIcon, PlusIcon, TrashIcon, TagIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import Product from '@/models/Product';
 import { ProductService } from '@/services/ProductService';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import Image from 'next/image';
+import { BrandService } from '@/services/BrandService';
+import { CategoryService } from '@/services/CategoryService';
+import { SubCategoryService } from '@/services/SubCategoryService';
 
-export default function ProductForm({ product, brands, categories, subCategories, onSubmit }) {
+export default function ProductForm({ product, brands, categories, subCategories, onSubmit, onRefreshData }) {
   const [formData, setFormData] = useState({
-    available: false,
+    available: true,
     productId: '',
     productName: '',
     productDescription: '',
@@ -32,6 +35,7 @@ export default function ProductForm({ product, brands, categories, subCategories
     productImage: [],
     variations: [],
     barcode: '',
+    purchasePrice: '',
     newImages: []
   });
 
@@ -42,6 +46,9 @@ export default function ProductForm({ product, brands, categories, subCategories
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [keywordInput, setKeywordInput] = useState('');
+  const [loadingBrands, setLoadingBrands] = useState(false);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingSubCategories, setLoadingSubCategories] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -57,12 +64,54 @@ export default function ProductForm({ product, brands, categories, subCategories
     }
   }, [product]);
 
+  const validatePrice = (price, mrp) => {
+    if (Number(price) > Number(mrp)) {
+      return 'Price cannot exceed MRP';
+    }
+    return '';
+  };
+
+  const validateQuantity = (max, stock) => {
+    if (Number(max) > Number(stock)) {
+      return 'Maximum quantity cannot exceed stock count';
+    }
+    return '';
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    const newValue = type === 'checkbox' ? checked : value;
+
+    setFormData(prev => {
+      const updatedData = {
+        ...prev,
+        [name]: newValue
+      };
+
+      // Validate price when either price or mrp changes
+      if (name === 'price' || name === 'mrp') {
+        const priceError = validatePrice(
+          name === 'price' ? value : prev.price,
+          name === 'mrp' ? value : prev.mrp
+        );
+        if (priceError) {
+          toast.error(priceError);
+        }
+      }
+
+      // Validate quantity when either maxSelectableQuantity or stockCount changes
+      if (name === 'maxSelectableQuantity' || name === 'stockCount') {
+        const quantityError = validateQuantity(
+          name === 'maxSelectableQuantity' ? value : prev.maxSelectableQuantity,
+          name === 'stockCount' ? value : prev.stockCount
+        );
+        if (quantityError) {
+          toast.error(quantityError);
+        }
+      }
+
+      return updatedData;
+    });
   };
 
   const handleImageChange = (e) => {
@@ -160,15 +209,34 @@ export default function ProductForm({ product, brands, categories, subCategories
   const handleKeywordInput = (e) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
-      const newKeyword = keywordInput.trim();
-      if (newKeyword && !formData.keywords.includes(newKeyword)) {
-        const updatedKeywords = [...(Array.isArray(formData.keywords) ? formData.keywords : []), newKeyword];
-        setFormData(prev => ({
-          ...prev,
-          keywords: updatedKeywords
-        }));
-      }
+      addKeyword();
+    }
+  };
+
+  const addKeyword = () => {
+    const newKeyword = keywordInput.trim();
+    if (newKeyword && !formData.keywords.includes(newKeyword)) {
+      setFormData(prev => ({
+        ...prev,
+        keywords: [...(Array.isArray(prev.keywords) ? prev.keywords : []), newKeyword]
+      }));
+    }
+    setKeywordInput('');
+  };
+
+  const addKeywordsByCharacter = () => {
+    const chars = keywordInput.trim().split('');
+    const newKeywords = chars.filter(char => 
+      char.trim() && !formData.keywords.includes(char)
+    );
+    
+    if (newKeywords.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        keywords: [...(Array.isArray(prev.keywords) ? prev.keywords : []), ...newKeywords]
+      }));
       setKeywordInput('');
+      toast.success(`Added ${newKeywords.length} new keywords`);
     }
   };
 
@@ -183,9 +251,27 @@ export default function ProductForm({ product, brands, categories, subCategories
     e.preventDefault();
     
     try {
-      // Validate form data
+      // Basic validation
       if (!formData.productName || !formData.brand || !formData.category) {
         toast.error('Please fill in all required fields');
+        return;
+      }
+
+      // Price validation
+      if (Number(formData.price) > Number(formData.mrp)) {
+        toast.error('Selling price cannot be greater than MRP');
+        return;
+      }
+
+      // Maximum quantity validation
+      if (Number(formData.maxSelectableQuantity) > Number(formData.stockCount)) {
+        toast.error('Maximum selectable quantity cannot exceed stock count');
+        return;
+      }
+
+      // Minimum quantity validation
+      if (Number(formData.minSelectableQuantity) > Number(formData.maxSelectableQuantity)) {
+        toast.error('Minimum quantity cannot be greater than maximum quantity');
         return;
       }
 
@@ -196,6 +282,10 @@ export default function ProductForm({ product, brands, categories, subCategories
         mrp: Number(formData.mrp),
         discount: Number(formData.discount),
         stockCount: Number(formData.stockCount),
+        purchasePrice: Number(formData.purchasePrice),
+        minSelectableQuantity: Number(formData.minSelectableQuantity),
+        maxSelectableQuantity: Number(formData.maxSelectableQuantity),
+        selectableQuantity: Number(formData.selectableQuantity),
         variations: formData.variations || []
       };
 
@@ -203,6 +293,45 @@ export default function ProductForm({ product, brands, categories, subCategories
     } catch (error) {
       console.error('Form submission error:', error);
       toast.error('Failed to save product');
+    }
+  };
+
+  const refreshBrands = async () => {
+    try {
+      setLoadingBrands(true);
+      const brandsData = await BrandService.getAllBrands();
+      onRefreshData?.('brands', brandsData);
+      toast.success('Brands refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh brands');
+    } finally {
+      setLoadingBrands(false);
+    }
+  };
+
+  const refreshCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const categoriesData = await CategoryService.getAllCategories();
+      onRefreshData?.('categories', categoriesData);
+      toast.success('Categories refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh categories');
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  const refreshSubCategories = async () => {
+    try {
+      setLoadingSubCategories(true);
+      const subCategoriesData = await SubCategoryService.getAllSubCategories();
+      onRefreshData?.('subCategories', subCategoriesData);
+      toast.success('Sub-categories refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh sub-categories');
+    } finally {
+      setLoadingSubCategories(false);
     }
   };
 
@@ -297,9 +426,20 @@ export default function ProductForm({ product, brands, categories, subCategories
           <h3 className="text-lg font-semibold mb-4 text-gray-800">Classification</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Brand <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Brand <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={refreshBrands}
+                  disabled={loadingBrands}
+                  className="inline-flex items-center px-2 py-1 text-sm text-gray-600 hover:text-gray-900"
+                >
+                  <ArrowPathIcon className={`h-4 w-4 mr-1 ${loadingBrands ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
               <select
                 name="brand"
                 value={formData.brand}
@@ -317,9 +457,20 @@ export default function ProductForm({ product, brands, categories, subCategories
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Category <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={refreshCategories}
+                  disabled={loadingCategories}
+                  className="inline-flex items-center px-2 py-1 text-sm text-gray-600 hover:text-gray-900"
+                >
+                  <ArrowPathIcon className={`h-4 w-4 mr-1 ${loadingCategories ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
               <select
                 name="category"
                 value={formData.category}
@@ -337,9 +488,20 @@ export default function ProductForm({ product, brands, categories, subCategories
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sub Category
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Sub Category
+                </label>
+                <button
+                  type="button"
+                  onClick={refreshSubCategories}
+                  disabled={loadingSubCategories}
+                  className="inline-flex items-center px-2 py-1 text-sm text-gray-600 hover:text-gray-900"
+                >
+                  <ArrowPathIcon className={`h-4 w-4 mr-1 ${loadingSubCategories ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
               <select
                 name="subCategory"
                 value={formData.subCategory}
@@ -370,9 +532,16 @@ export default function ProductForm({ product, brands, categories, subCategories
                 name="price"
                 value={formData.price}
                 onChange={handleInputChange}
-                className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                className={`w-full rounded-lg border ${
+                  Number(formData.price) > Number(formData.mrp)
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                }`}
                 required
               />
+              {Number(formData.price) > Number(formData.mrp) && (
+                <p className="mt-1 text-sm text-red-500">Price cannot exceed MRP</p>
+              )}
             </div>
 
             <div>
@@ -383,6 +552,19 @@ export default function ProductForm({ product, brands, categories, subCategories
                 type="number"
                 name="mrp"
                 value={formData.mrp}
+                onChange={handleInputChange}
+                className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+              purchase Price (₹) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="purchasePrice"
+                value={formData.purchasePrice}
                 onChange={handleInputChange}
                 className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 required
@@ -445,8 +627,15 @@ export default function ProductForm({ product, brands, categories, subCategories
                   name="maxSelectableQuantity"
                   value={formData.maxSelectableQuantity}
                   onChange={handleInputChange}
-                  className="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className={`w-full rounded-lg border ${
+                    Number(formData.maxSelectableQuantity) > Number(formData.stockCount)
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                  }`}
                 />
+                {Number(formData.maxSelectableQuantity) > Number(formData.stockCount) && (
+                  <p className="mt-1 text-sm text-red-500">Cannot exceed stock count</p>
+                )}
               </div>
             </div>
 
@@ -566,17 +755,28 @@ export default function ProductForm({ product, brands, categories, subCategories
                     </button>
                   </span>
                 ))}
+              </div>
+              
+              <div className="flex gap-2">
                 <input
                   type="text"
                   value={keywordInput}
                   onChange={(e) => setKeywordInput(e.target.value)}
                   onKeyDown={handleKeywordInput}
-                  className="flex-1 min-w-[120px] bg-transparent border-none focus:ring-0 text-sm p-0"
+                  className="flex-1 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                   placeholder="Type and press Enter to add keywords"
                 />
+                <button
+                  type="button"
+                  onClick={addKeywordsByCharacter}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Add Characters as Keywords
+                </button>
               </div>
+              
               <p className="text-xs text-gray-500 ml-1">
-                Press Enter or use comma to add keywords
+                Press Enter or use comma to add keywords, or click the button to add each character as a keyword
               </p>
             </div>
           </div>

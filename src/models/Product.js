@@ -73,6 +73,7 @@ class Product {
     subCategory = '',
     price = 0,
     mrp = 0,
+    purchasePrice = 0,
     discount = 0,
     stockCount = 0,
     minSelectableQuantity = 1,
@@ -97,6 +98,7 @@ class Product {
     this.subCategory = subCategory;
     this.price = price;
     this.mrp = mrp;
+    this.purchasePrice = purchasePrice;
     this.discount = discount;
     this.stockCount = stockCount;
     this.minSelectableQuantity = minSelectableQuantity;
@@ -131,6 +133,7 @@ class Product {
       subCategory: this.subCategory,
       price: this.price,
       mrp: this.mrp,
+      purchasePrice: this.purchasePrice,
       discount: this.discount,
       stockCount: this.stockCount,
       minSelectableQuantity: this.minSelectableQuantity,
