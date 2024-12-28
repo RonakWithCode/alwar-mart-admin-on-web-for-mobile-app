@@ -8,6 +8,7 @@ export default function Sidebar() {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: '📊' },
     { name: 'Categories', path: '/dashboard/categories', icon: '📁' },
+    { name: 'sub categories', path: '/dashboard/subcategories', icon: '📁' },
     { name: 'Products', path: '/dashboard/products', icon: '📦' },
     { name: 'Brands', path: '/dashboard/brands', icon: '🏢' },
     { name: 'Orders', path: '/dashboard/orders', icon: '🛍️' },
