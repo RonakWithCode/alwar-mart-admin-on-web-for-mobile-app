@@ -149,6 +149,29 @@ export default function ProductsPage() {
     }
   };
 
+  const handleProductSubmit = async (formData) => {
+    try {
+      if (selectedProduct) {
+        await ProductService.updateProduct(
+          selectedProduct.id,
+          formData,
+          formData.newImages,
+          selectedProduct.productImage
+        );
+        toast.success('Product updated successfully');
+      } else {
+        const result = await ProductService.createProduct(formData, formData.newImages);
+        toast.success('Product created successfully');
+      }
+      setIsModalOpen(false);
+      setSelectedProduct(null);
+      fetchInitialData();
+    } catch (error) {
+      toast.error(selectedProduct ? 'Failed to update product' : 'Failed to create product');
+      console.error('Error:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -303,28 +326,7 @@ export default function ProductsPage() {
               brands={brands}
               categories={categories}
               subCategories={subCategories}
-              onSubmit={async (formData) => {
-                try {
-                  if (selectedProduct) {
-                    await ProductService.updateProduct(
-                      selectedProduct.id,
-                      formData,
-                      formData.newImages,
-                      selectedProduct.productImage
-                    );
-                    toast.success('Product updated successfully');
-                  } else {
-                    await ProductService.createProduct(formData, formData.newImages);
-                    toast.success('Product created successfully');
-                  }
-                  setIsModalOpen(false);
-                  setSelectedProduct(null);
-                  fetchInitialData();
-                } catch (error) {
-                  toast.error(selectedProduct ? 'Failed to update product' : 'Failed to create product');
-                  console.error('Error:', error);
-                }
-              }}
+              onSubmit={handleProductSubmit}
               onRefreshData={handleRefreshData}
             />
           </div>

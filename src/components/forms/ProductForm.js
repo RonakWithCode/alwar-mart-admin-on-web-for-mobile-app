@@ -13,6 +13,7 @@ import { SubCategoryService } from '@/services/SubCategoryService';
 export default function ProductForm({ product, brands, categories, subCategories, onSubmit, onRefreshData }) {
   const [formData, setFormData] = useState({
     available: true,
+    productId: product?.productId || '',
     productName: '',
     productDescription: '',
     brand: '',
@@ -253,14 +254,7 @@ export default function ProductForm({ product, brands, categories, subCategories
 
     try {
       setIsSubmitting(true);
-      if (product) {
-        await onSubmit({
-          ...formData,
-          currentImages: product.productImage
-        });
-      } else {
-        await onSubmit(formData);
-      }
+      await onSubmit(formData);
     } catch (error) {
       console.error('Error submitting form:', error);
     } finally {
@@ -352,6 +346,22 @@ export default function ProductForm({ product, brands, categories, subCategories
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <h3 className="text-lg font-semibold mb-4 text-gray-800">Basic Information</h3>
           <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Product ID
+              </label>
+              <input
+                type="text"
+                name="productId"
+                value={formData.productId || 'Will be auto-generated'}
+                readOnly
+                className="w-full rounded-lg border-gray-300 bg-gray-50 text-gray-500 cursor-not-allowed"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                This ID will be automatically generated when the product is created
+              </p>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Product Name <span className="text-red-500">*</span>

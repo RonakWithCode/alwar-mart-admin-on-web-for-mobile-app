@@ -13,7 +13,7 @@ export class ProductService {
 
   static async getAllProducts() {
     try {
-      const querySnapshot = await getDocs(collection(db, 'products'));
+      const querySnapshot = await getDocs(collection(db, 'Product'));
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -63,8 +63,8 @@ export class ProductService {
       // Create new Product instance
       const product = new Product(processedData);
 
-      // Create document with generated ID
-      const productRef = doc(db, 'products', generatedId);
+      // Create document with generated ID in 'products' collection
+      const productRef = doc(db, 'Product', generatedId);
       
       // Save to Firestore
       await setDoc(productRef, {
@@ -74,6 +74,7 @@ export class ProductService {
 
       return {
         id: generatedId,
+        productId: generatedId,
         ...product.toFirestore()
       };
     } catch (error) {
@@ -84,7 +85,7 @@ export class ProductService {
 
   static async updateProduct(productId, productData, imageFiles, currentImages) {
     try {
-      const productDocRef = doc(db, 'products', productId);
+      const productDocRef = doc(db, 'Product', productId);
       let productImages = [...(currentImages || [])];
 
       // Handle new image uploads
@@ -134,7 +135,7 @@ export class ProductService {
 
   static async deleteProduct(productId, productImages) {
     try {
-      const productDocRef = doc(db, 'products', productId);
+      const productDocRef = doc(db, 'Product', productId);
       // Delete all images from storage
       if (productImages && productImages.length > 0) {
         for (const imageUrl of productImages) {
@@ -156,7 +157,7 @@ export class ProductService {
 
   static async getProductById(productId) {
     try {
-      const productDocRef = doc(db, 'products', productId);
+      const productDocRef = doc(db, 'Product', productId);
       const productDoc = await getDoc(productDocRef);
       
       if (!productDoc.exists()) {
