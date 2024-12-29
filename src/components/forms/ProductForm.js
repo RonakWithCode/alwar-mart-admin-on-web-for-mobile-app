@@ -51,6 +51,10 @@ export default function ProductForm({ product, brands, categories, subCategories
   const [loadingSubCategories, setLoadingSubCategories] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReview, setShowReview] = useState(false);
+  const [expandedFields, setExpandedFields] = useState({
+    description: false,
+    keywords: false
+  });
 
   useEffect(() => {
     if (product) {
@@ -430,7 +434,13 @@ export default function ProductForm({ product, brands, categories, subCategories
     }
   };
 
-  // Review Modal Component
+  // Helper function to truncate text
+  const truncateText = (text, maxLength = 100) => {
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength) + '...';
+  };
+
+  // Review Modal Component with updated text handling
   const ReviewModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -450,7 +460,25 @@ export default function ProductForm({ product, brands, categories, subCategories
             <h3 className="text-lg font-semibold text-gray-800">Basic Information</h3>
             <div className="space-y-2">
               <p><span className="font-medium">Product Name:</span> {formData.productName}</p>
-              <p><span className="font-medium">Description:</span> {formData.productDescription}</p>
+              <div>
+                <span className="font-medium">Description:</span>
+                <p className="mt-1 text-gray-600">
+                  {expandedFields.description 
+                    ? formData.productDescription 
+                    : truncateText(formData.productDescription)}
+                  {formData.productDescription.length > 100 && (
+                    <button
+                      onClick={() => setExpandedFields(prev => ({
+                        ...prev,
+                        description: !prev.description
+                      }))}
+                      className="ml-2 text-blue-500 hover:text-blue-600 text-sm"
+                    >
+                      {expandedFields.description ? 'Show Less' : 'See More'}
+                    </button>
+                  )}
+                </p>
+              </div>
               <p><span className="font-medium">Brand:</span> {formData.brand}</p>
               <p><span className="font-medium">Category:</span> {formData.category}</p>
               <p><span className="font-medium">Sub Category:</span> {formData.subCategory}</p>
@@ -503,13 +531,32 @@ export default function ProductForm({ product, brands, categories, subCategories
                 </div>
               </div>
               <div>
-                <p className="font-medium mb-2">Keywords:</p>
-                <div className="flex flex-wrap gap-2">
-                  {formData.keywords?.map((keyword, index) => (
-                    <span key={index} className="px-2 py-1 bg-gray-100 rounded-full text-sm">
-                      {keyword}
-                    </span>
-                  ))}
+                <h3 className="text-lg font-semibold text-gray-800">Keywords</h3>
+                <div className="space-y-2">
+                  <div>
+                    <div className="flex flex-wrap gap-2">
+                      {(expandedFields.keywords 
+                        ? formData.keywords 
+                        : formData.keywords?.slice(0, 10))?.map((keyword, index) => (
+                        <span key={index} className="px-2 py-1 bg-gray-100 rounded-full text-sm">
+                          {keyword}
+                        </span>
+                      ))}
+                      {formData.keywords?.length > 10 && (
+                        <button
+                          onClick={() => setExpandedFields(prev => ({
+                            ...prev,
+                            keywords: !prev.keywords
+                          }))}
+                          className="text-blue-500 hover:text-blue-600 text-sm"
+                        >
+                          {expandedFields.keywords 
+                            ? 'Show Less' 
+                            : `+${formData.keywords.length - 10} more`}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
