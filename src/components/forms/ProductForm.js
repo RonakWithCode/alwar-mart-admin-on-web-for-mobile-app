@@ -157,7 +157,7 @@ export default function ProductForm({ product, brands, categories, subCategories
     if (Number(formData.minSelectableQuantity) > Number(formData.maxSelectableQuantity)) {
       errors.push('Minimum selectable quantity cannot be greater than maximum');
     }
-
+    
     // Set default selectable quantity to minSelectableQuantity if not set
     // if (!formData.selectableQuantity) {
       formData.selectableQuantity = formData.minSelectableQuantity;
