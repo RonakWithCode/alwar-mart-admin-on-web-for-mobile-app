@@ -79,19 +79,19 @@ export default function ProductsPage() {
     }
   };
 
-  const debugProduct = async () => {
-    try {
-      console.log('Starting product debug...');
-      const product = await ProductService.getProductById('-OEcEGpltWneAQ9v4noh');
-      console.log('Successfully fetched product:', product);
-    } catch (error) {
-      console.error('Debug error:', error);
-    }
-  };
+  // const debugProduct = async () => {
+  //   try {
+  //     console.log('Starting product debug...');
+  //     const product = await ProductService.getProductById('-OEcEGpltWneAQ9v4noh');
+  //     console.log('Successfully fetched product:', product);
+  //   } catch (error) {
+  //     console.error('Debug error:', error);
+  //   }
+  // };
 
-  useEffect(() => {
-    debugProduct();
-  }, []);
+  // useEffect(() => {
+  //   debugProduct();
+  // }, []);
 
   const refreshBrands = async () => {
     try {

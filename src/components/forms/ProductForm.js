@@ -50,6 +50,7 @@ export default function ProductForm({ product, brands, categories, subCategories
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingSubCategories, setLoadingSubCategories] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showReview, setShowReview] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -79,40 +80,176 @@ export default function ProductForm({ product, brands, categories, subCategories
     return '';
   };
 
+  const validateForm = () => {
+    const errors = [];
+    // const specialChars = /[+*]/;
+
+    // Required field validation
+    const requiredFields = {
+      productName: 'Product Name',
+      productDescription: 'Product Description',
+      brand: 'Brand',
+      category: 'Category',
+      subCategory: 'Sub Category',
+      price: 'Price',
+      mrp: 'MRP',
+      stockCount: 'Stock Count',
+      weight: 'Weight',
+      weightSIUnit: 'Weight Unit',
+      productType: 'Product Type',
+      purchasePrice: 'Purchase Price'
+    };
+
+    Object.entries(requiredFields).forEach(([field, label]) => {
+      if (!formData[field] || formData[field].toString().trim() === '') {
+        errors.push(`${label} is required`);
+      }
+    });
+
+    // Product Images validation (minimum 2)
+    const totalImages = (formData.productImage?.length || 0) + (formData.newImages?.length || 0);
+    if (totalImages < 2) {
+      errors.push('Minimum 2 product images are required');
+    }
+
+    // Numeric validations
+    const numericFields = {
+      price: 'Price',
+      mrp: 'MRP',
+      discount: 'Discount',
+      stockCount: 'Stock Count',
+      minSelectableQuantity: 'Minimum Selectable Quantity',
+      maxSelectableQuantity: 'Maximum Selectable Quantity',
+      selectableQuantity: 'Selectable Quantity',
+      purchasePrice: 'Purchase Price'
+    };
+
+    Object.entries(numericFields).forEach(([field, label]) => {
+      const value = Number(formData[field]);
+      if (isNaN(value) || value < 0) {
+        errors.push(`${label} must be a valid positive number`);
+      }
+    });
+
+    // Price validations
+    if (Number(formData.price) > Number(formData.mrp)) {
+      errors.push('Price cannot be greater than MRP');
+    }
+
+    if (Number(formData.purchasePrice) > Number(formData.price)) {
+      errors.push('Purchase price cannot be greater than selling price');
+    }
+
+    // Discount validation (0-100)
+    if (Number(formData.discount) < 0 || Number(formData.discount) > 100) {
+      errors.push('Discount must be between 0 and 100');
+    }
+
+    // Quantity validations
+    if (Number(formData.maxSelectableQuantity) > Number(formData.stockCount)) {
+      errors.push('Maximum selectable quantity cannot exceed stock count');
+    }
+
+    if (Number(formData.minSelectableQuantity) > Number(formData.maxSelectableQuantity)) {
+      errors.push('Minimum selectable quantity cannot be greater than maximum');
+    }
+
+    // Set default selectable quantity to minSelectableQuantity if not set
+    // if (!formData.selectableQuantity) {
+      formData.selectableQuantity = formData.minSelectableQuantity;
+    // }
+
+    // Validate that selectable quantity is within range
+    // const selectableQty = Number(formData.selectableQuantity);
+    // const minQty = Number(formData.minSelectableQuantity);
+    // const maxQty = Number(formData.maxSelectableQuantity);
+
+    // // if (selectableQty < minQty || selectableQty > maxQty) {
+    // //   errors.push('Default quantity must be between minimum and maximum values');
+    // // }
+
+    // Keywords validation (at least one keyword)
+    if (!formData.keywords?.length) {
+      errors.push('At least one keyword is required');
+    }
+
+    // Description length validation
+    if (formData.productDescription.length < 20) {
+      errors.push('Product description must be at least 20 characters long');
+    }
+
+    // Weight validation
+    // if (Number(formData.weight) <= 0) {
+    //   errors.push('Weight must be greater than 0');
+    // }
+
+    if (!formData.weightSIUnit) {
+      errors.push('Weight unit is required');
+    }
+
+    return errors;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      validationErrors.forEach(error => toast.error(error));
+      return;
+    }
+
+    // Show review screen instead of submitting directly
+    setShowReview(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      await onSubmit(formData);
+      toast.success(`Product ${product ? 'updated' : 'created'} successfully`);
+      setShowReview(false);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast.error('Failed to save product');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Add helper function for real-time validation
+  const validateField = (name, value) => {
+    switch (name) {
+      case 'price':
+        if (Number(value) > Number(formData.mrp)) {
+          toast.error('Price cannot exceed MRP');
+        }
+        break;
+      case 'maxSelectableQuantity':
+        if (Number(value) > Number(formData.stockCount)) {
+          toast.error('Maximum quantity cannot exceed stock count');
+        }
+        break;
+      case 'purchasePrice':
+        if (Number(value) > Number(formData.price)) {
+          toast.error('Purchase price cannot exceed selling price');
+        }
+        break;
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
 
-    setFormData(prev => {
-      const updatedData = {
-        ...prev,
-        [name]: newValue
-      };
+    setFormData(prev => ({
+      ...prev,
+      [name]: newValue
+    }));
 
-      // Validate price when either price or mrp changes
-      if (name === 'price' || name === 'mrp') {
-        const priceError = validatePrice(
-          name === 'price' ? value : prev.price,
-          name === 'mrp' ? value : prev.mrp
-        );
-        if (priceError) {
-          toast.error(priceError);
-        }
-      }
-
-      // Validate quantity when either maxSelectableQuantity or stockCount changes
-      if (name === 'maxSelectableQuantity' || name === 'stockCount') {
-        const quantityError = validateQuantity(
-          name === 'maxSelectableQuantity' ? value : prev.maxSelectableQuantity,
-          name === 'stockCount' ? value : prev.stockCount
-        );
-        if (quantityError) {
-          toast.error(quantityError);
-        }
-      }
-
-      return updatedData;
-    });
+    // Perform real-time validation for specific fields
+    validateField(name, value);
   };
 
   const handleImageChange = (e) => {
@@ -215,51 +352,43 @@ export default function ProductForm({ product, brands, categories, subCategories
   };
 
   const addKeyword = () => {
-    const newKeyword = keywordInput.trim();
-    if (newKeyword && !formData.keywords.includes(newKeyword)) {
-      setFormData(prev => ({
-        ...prev,
-        keywords: [...(Array.isArray(prev.keywords) ? prev.keywords : []), newKeyword]
-      }));
-    }
-    setKeywordInput('');
-  };
-
-  const addKeywordsByCharacter = () => {
-    const chars = keywordInput.trim().split('');
-    const newKeywords = chars.filter(char => 
-      char.trim() && !formData.keywords.includes(char)
-    );
+    const keyword = keywordInput.trim().toLowerCase();
     
+    if (!keyword) return;
+
+    // Generate progressive substrings
+    const progressiveKeywords = [];
+    for (let i = 1; i <= keyword.length; i++) {
+      progressiveKeywords.push(keyword.slice(0, i));
+    }
+
+    // Get current keywords array or initialize empty array
+    const currentKeywords = Array.isArray(formData.keywords) ? formData.keywords : [];
+
+    // Filter out duplicates
+    const newKeywords = progressiveKeywords.filter(
+      kw => !currentKeywords.includes(kw)
+    );
+
     if (newKeywords.length > 0) {
       setFormData(prev => ({
         ...prev,
-        keywords: [...(Array.isArray(prev.keywords) ? prev.keywords : []), ...newKeywords]
+        keywords: [...currentKeywords, ...newKeywords]
       }));
-      setKeywordInput('');
-      toast.success(`Added ${newKeywords.length} new keywords`);
+      toast.success(`Added ${newKeywords.length} keywords for "${keyword}"`);
+    } else {
+      toast.error('These keywords already exist');
     }
+
+    // Clear input
+    setKeywordInput('');
   };
 
   const removeKeyword = (keywordToRemove) => {
     setFormData(prev => ({
       ...prev,
-      keywords: prev.keywords.filter(keyword => keyword !== keywordToRemove)
+      keywords: prev.keywords.filter(k => k !== keywordToRemove)
     }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-
-    try {
-      setIsSubmitting(true);
-      await onSubmit(formData);
-    } catch (error) {
-      console.error('Error submitting form:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const refreshBrands = async () => {
@@ -300,6 +429,117 @@ export default function ProductForm({ product, brands, categories, subCategories
       setLoadingSubCategories(false);
     }
   };
+
+  // Review Modal Component
+  const ReviewModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">Review Product Details</h2>
+          <button
+            onClick={() => setShowReview(false)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <XMarkIcon className="h-6 w-6" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">Basic Information</h3>
+            <div className="space-y-2">
+              <p><span className="font-medium">Product Name:</span> {formData.productName}</p>
+              <p><span className="font-medium">Description:</span> {formData.productDescription}</p>
+              <p><span className="font-medium">Brand:</span> {formData.brand}</p>
+              <p><span className="font-medium">Category:</span> {formData.category}</p>
+              <p><span className="font-medium">Sub Category:</span> {formData.subCategory}</p>
+              <p><span className="font-medium">Product Type:</span> {formData.productType}</p>
+            </div>
+          </div>
+
+          {/* Pricing & Stock */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">Pricing & Stock</h3>
+            <div className="space-y-2">
+              <p><span className="font-medium">MRP:</span> ₹{formData.mrp}</p>
+              <p><span className="font-medium">Selling Price:</span> ₹{formData.price}</p>
+              <p><span className="font-medium">Purchase Price:</span> ₹{formData.purchasePrice}</p>
+              <p><span className="font-medium">Discount:</span> {formData.discount}%</p>
+              <p><span className="font-medium">Stock Count:</span> {formData.stockCount}</p>
+            </div>
+          </div>
+
+          {/* Product Details */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">Product Details</h3>
+            <div className="space-y-2">
+              <p><span className="font-medium">Weight:</span> {formData.weight} {formData.weightSIUnit}</p>
+              <p><span className="font-medium">Min Quantity:</span> {formData.minSelectableQuantity}</p>
+              <p><span className="font-medium">Max Quantity:</span> {formData.maxSelectableQuantity}</p>
+              <p><span className="font-medium">Default Quantity:</span> {formData.selectableQuantity}</p>
+              <p><span className="font-medium">Food Item:</span> {formData.productIsFoodItem}</p>
+            </div>
+          </div>
+
+          {/* Images & Keywords */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-800">Images & Keywords</h3>
+            <div className="space-y-2">
+              <div>
+                <p className="font-medium mb-2">Product Images:</p>
+                <div className="flex flex-wrap gap-2">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="w-20 h-20 rounded-lg overflow-hidden">
+                      <Image
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        width={80}
+                        height={80}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="font-medium mb-2">Keywords:</p>
+                <div className="flex flex-wrap gap-2">
+                  {formData.keywords?.map((keyword, index) => (
+                    <span key={index} className="px-2 py-1 bg-gray-100 rounded-full text-sm">
+                      {keyword}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-4 mt-8">
+          <button
+            type="button"
+            onClick={() => setShowReview(false)}
+            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmSubmit}
+            disabled={isSubmitting}
+            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isSubmitting && (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            )}
+            Confirm & Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -735,13 +975,7 @@ export default function ProductForm({ product, brands, categories, subCategories
                   className="flex-1 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                   placeholder="Type and press Enter to add keywords"
                 />
-                <button
-                  type="button"
-                  onClick={addKeywordsByCharacter}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  Add Characters as Keywords
-                </button>
+             
               </div>
               
               <p className="text-xs text-gray-500 ml-1">
@@ -887,6 +1121,8 @@ export default function ProductForm({ product, brands, categories, subCategories
           {product ? 'Update' : 'Create'}
         </button>
       </div>
+
+      {showReview && <ReviewModal />}
     </form>
   );
 } 
