@@ -1,4 +1,4 @@
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import Brand from '@/models/Brand';
@@ -43,8 +43,9 @@ export class BrandService {
         createdAt: new Date().toISOString()
       });
 
-      const brandRef = await addDoc(collection(db, 'brand'), brand.toFirestore());
-      return { id: brandRef.id, ...brand };
+      const brandRef = doc(db, 'brand', brandName);
+      await setDoc(brandRef, brand.toFirestore());
+      return { id: brandName, ...brand };
     } catch (error) {
       console.error('Error creating brand:', error);
       throw new Error('Failed to create brand');

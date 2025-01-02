@@ -1,4 +1,4 @@
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import Category from '@/models/Category';
@@ -25,12 +25,13 @@ export class CategoryService {
     let imageUri = '';
     
     if (imageFile) {
-      imageUri = await this.uploadImage(imageFile,tag);
+      imageUri = await this.uploadImage(imageFile, tag);
     }
 
     const category = new Category({ tag, imageUri });
-    const docRef = await addDoc(collection(db, 'Category'), category.toFirestore());
-    return docRef.id;
+    const docRef = doc(db, 'Category', tag);
+    await setDoc(docRef, category.toFirestore());
+    return tag;
   }
 
   /**
