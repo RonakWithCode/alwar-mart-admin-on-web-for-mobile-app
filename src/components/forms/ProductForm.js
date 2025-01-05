@@ -1024,6 +1024,14 @@ export default function ProductForm({ product, brands, categories, subCategories
                 />
              
               </div>
+              <button
+                type="button"
+                onClick={() => addKeyword(keywordInput)}
+                className="inline-flex items-center px-2 py-1 text-sm text-gray-600 hover:text-gray-900"
+              >
+                <PlusIcon className="h-4 w-4 mr-1" />
+                Add Keyword
+              </button>
               
               <p className="text-xs text-gray-500 ml-1">
                 Press Enter or use comma to add keywords, or click the button to add each character as a keyword
