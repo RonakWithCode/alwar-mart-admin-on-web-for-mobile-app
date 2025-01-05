@@ -68,6 +68,7 @@ export default function ProductsPage() {
 
   const handleDelete = async () => {
     try {
+      // await ProductService.deleteProductsByCategory('Dishwashing Bars & Tubs');
       await ProductService.deleteProduct(selectedProduct.id, selectedProduct.productImage);
       toast.success('Product deleted successfully');
       setIsDeleteDialogOpen(false);
@@ -328,6 +329,10 @@ export default function ProductsPage() {
               subCategories={subCategories}
               onSubmit={handleProductSubmit}
               onRefreshData={handleRefreshData}
+              cancel={() => {
+                setIsModalOpen(false);
+                setSelectedProduct(null);
+              }}
             />
           </div>
         </div>

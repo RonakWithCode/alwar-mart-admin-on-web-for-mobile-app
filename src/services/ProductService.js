@@ -1,4 +1,5 @@
-import { collection, getDocs, setDoc, deleteDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, deleteDoc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';  // Add this separate import for doc
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import Product from '@/models/Product';
@@ -198,5 +199,43 @@ export class ProductService {
     }
   }
 
+  // static async deleteProductsByCategory(categoryName) {
+  //   try {
+  //     // Get all products
+  //     const querySnapshot = await getDocs(collection(db, 'Product'));
+  //     const deletePromises = [];
+
+  //     // Filter and delete products with matching category
+  //     for (const docSnapshot of querySnapshot.docs) {
+  //       const productData = docSnapshot.data();
+  //       if (productData.category === categoryName) {
+  //         // Delete product images from storage if they exist
+  //         if (productData.productImage && productData.productImage.length > 0) {
+  //           for (const imageUrl of productData.productImage) {
+  //             try {
+  //               const imageRef = ref(storage, imageUrl);
+  //               deletePromises.push(deleteObject(imageRef));
+  //             } catch (error) {
+  //               console.error('Error deleting product image:', error);
+  //             }
+  //           }
+  //         }
+  //         // Delete the product document
+  //         const productRef = doc(db, 'Product', docSnapshot.id);
+  //         deletePromises.push(deleteDoc(productRef));
+  //       }
+  //     }
+
+  //     // Wait for all deletions to complete
+  //     await Promise.all(deletePromises);
+      
+  //     console.log(`Successfully deleted all products in category: ${categoryName}`);
+  //   } catch (error) {
+  //     console.error('Error deleting products by category:', error);
+  //     throw new Error(`Failed to delete products in category: ${error.message}`);
+  //   }
+  // }
 
 } 
+
+// await ProductService.deleteProductsByCategory('Soaps & Body Care');

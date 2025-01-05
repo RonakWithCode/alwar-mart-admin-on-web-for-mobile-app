@@ -10,7 +10,7 @@ import { BrandService } from '@/services/BrandService';
 import { CategoryService } from '@/services/CategoryService';
 import { SubCategoryService } from '@/services/SubCategoryService';
 
-export default function ProductForm({ product, brands, categories, subCategories, onSubmit, onRefreshData }) {
+export default function ProductForm({ product, brands, categories, subCategories, onSubmit, onRefreshData , cancel }) {
   const [formData, setFormData] = useState({
     available: true,
     productId: product?.productId || '',
@@ -1162,7 +1162,7 @@ export default function ProductForm({ product, brands, categories, subCategories
       <div className="flex justify-end gap-4 pt-4">
         <button
           type="button"
-          onClick={() => onCancel?.()}
+          onClick={() => cancel()}
           className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
         >
           Cancel
