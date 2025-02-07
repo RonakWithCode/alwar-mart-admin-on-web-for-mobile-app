@@ -3,6 +3,8 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { OrderService } from '@/services/OrderService';
 import Image from 'next/image';
+import { printInvoice, generatePDF } from '@/utils/invoicePrinter';
+import { toast } from 'react-hot-toast';
 
 export default function OrderDetailsModal({ order, onClose, onStatusUpdate }) {
   const formatCurrency = (amount) => {
@@ -33,6 +35,105 @@ export default function OrderDetailsModal({ order, onClose, onStatusUpdate }) {
     { status: OrderService.ORDER_STATUS.CUSTOMER_REJECTED, color: 'bg-orange-600 hover:bg-orange-700' },
     { status: OrderService.ORDER_STATUS.CUSTOMER_NOT_AVAILABLE, color: 'bg-gray-600 hover:bg-gray-700' }
   ];
+
+  const handleInvoiceActions = async () => {
+    const invoiceData = {
+      businessInfo: {
+        name: 'Alwar Mart',
+        phone: '7023941072',
+        email: 'contact@alwarmart.com',
+        logo: '/images/logo.png'
+      },
+      orderDetails: {
+        orderId: order.orderId,
+        orderDate: formatDate(order.orderDate),
+        customerName: order.customer.fullName,
+        customerPhone: order.customer.phoneNumber,
+        shippingAddress: {
+          fullName: order.shipping.shippingAddress.fullName,
+          address: `${order.shipping.shippingAddress.flatHouse}, ${order.shipping.shippingAddress.address}`,
+          landmark: order.shipping.shippingAddress.landmark,
+          phone: order.shipping.shippingAddress.mobileNumber
+        }
+      },
+      items: order.orderItems.map(item => ({
+        name: item.productName,
+        quantity: item.selectableQuantity,
+        price: item.price,
+        total: item.price * item.selectableQuantity,
+        variation: item.variations ? `${item.variations.variationName} - ${item.variations.variationValue}` : null
+      })),
+      pricing: {
+        subtotal: order.orderTotalPrice,
+        discount: order.couponCodeValue || 0,
+        couponCode: order.couponCode,
+        shippingFee: parseFloat(order.shipping.shippingFee) || 0,
+        processingFees: order.processingFees || 0,
+        donation: order.donate || 0,
+        total: order.orderTotalPrice - 
+               order.couponCodeValue + 
+               (parseFloat(order.shipping.shippingFee) || 0) + 
+               order.processingFees + 
+               order.donate
+      },
+      payment: {
+        method: order.payment.paymentMethod,
+        status: order.payment.paymentStatus
+      }
+    };
+
+    return invoiceData;
+  };
+
+  const handleConfirmOrder = async (order, status) => {
+    try {
+      await onStatusUpdate(order, status);
+      
+      if (status === OrderService.ORDER_STATUS.CONFIRMED) {
+        const invoiceData = await handleInvoiceActions();
+        
+        // Show modal or dialog for print options
+        const printChoice = await showPrintOptionsDialog();
+        
+        if (printChoice === 'pdf') {
+          await generatePDF(invoiceData);
+        } else if (printChoice === 'print') {
+          await printInvoice(invoiceData);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling order confirmation:', error);
+      toast.error('Failed to process order confirmation');
+    }
+  };
+
+  const showPrintOptionsDialog = () => {
+    return new Promise((resolve) => {
+      const dialog = document.createElement('div');
+      dialog.innerHTML = `
+        <div class="fixed inset-0 z-50 flex items-center justify-center">
+          <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+          <div class="relative bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <h3 class="text-lg font-medium mb-4">Choose Invoice Option</h3>
+            <div class="space-y-3">
+              <button class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="this.closest('.fixed').remove(); window.tempResolve('pdf')">
+                Save as PDF
+              </button>
+              <button class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onclick="this.closest('.fixed').remove(); window.tempResolve('print')">
+                Print Invoice
+              </button>
+              <button class="w-full bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400" onclick="this.closest('.fixed').remove(); window.tempResolve(null)">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(dialog);
+      window.tempResolve = resolve;
+    });
+  };
 
   return (
     <Transition.Root show={true} as={Fragment}>
@@ -115,7 +216,7 @@ export default function OrderDetailsModal({ order, onClose, onStatusUpdate }) {
                         {statusActions.map(({ status, color }) => (
                           <button
                             key={status}
-                            onClick={() => onStatusUpdate(order, status)}
+                            onClick={() => handleConfirmOrder(order, status)}
                             disabled={order.orderStatus === status}
                             className={`${color} text-white px-3 py-2 text-sm rounded-md disabled:opacity-50 disabled:cursor-not-allowed`}
                           >
@@ -123,6 +224,26 @@ export default function OrderDetailsModal({ order, onClose, onStatusUpdate }) {
                           </button>
                         ))}
                       </div>
+                      
+                      {/* Show print button only if order is confirmed */}
+                      {order.orderStatus === OrderService.ORDER_STATUS.CONFIRMED && (
+                        <div className="mt-4">
+                          <button
+                            onClick={async () => {
+                              const invoiceData = await handleInvoiceActions();
+                              const choice = await showPrintOptionsDialog();
+                              if (choice === 'pdf') {
+                                await generatePDF(invoiceData);
+                              } else if (choice === 'print') {
+                                await printInvoice(invoiceData);
+                              }
+                            }}
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 text-sm rounded-md"
+                          >
+                            Generate Invoice
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
